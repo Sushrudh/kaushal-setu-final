@@ -1,13 +1,13 @@
 import React from 'react';
 
 interface FooterProps {
-  setCurrentPage?: (page: string) => void;
+  onNavigate?: (view: string) => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
+export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   return (
     <>
-      {/* Compliance Trust Bar */}
+      {/* Compliance Trust Bar Matching Uploaded Design */}
       <aside className="w-full bg-slate-900 border-t border-slate-800 py-4 px-4 text-center">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-xs font-medium text-slate-400">
           <div className="flex items-center gap-2">
@@ -31,17 +31,17 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
         </div>
       </aside>
 
-      {/* Main Footer */}
+      {/* Main Multi-Column Footer Matching Authoritative Design */}
       <footer className="w-full bg-slate-950 text-slate-400 text-xs border-t border-slate-800/80 pt-12 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-8 pb-10 border-b border-slate-800">
-            {/* Col 1 & 2: Platform Description */}
+            {/* Column 1 & 2: Platform Description */}
             <div className="md:col-span-2 space-y-3">
               <div className="flex items-center space-x-3">
                 <img
                   alt="Kaushal Setu Logo Small"
                   className="h-8 w-auto bg-white p-0.5 rounded shadow-sm"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDq-7-QrBwoTufG1oRz9ElrTokuDMPzRZLlXaGictC47qQBsQ6bkQT8z1nIxsHRRZaxS7yTijTLhb-KsHbBPDBxuGG1qGqIw9jTf6RCKL6xRPNwPhEYWp0iOvCWXkmPLKXFtGvQP4_S0w-iihaSRnyW8wQ2hMGFHjQoyeuHFWxVMsTVBmEoRqlaKRsGSgLUotdN2h_qCFlIuM7yK45SEjiWFg2vSs-RENfNyASttUVH-1i3qVw0K9CkUOAAMWMWZpH2sg"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDv5bUAk5gyvFe2EvMHgmZ_YoM6xSVA85XYnbC381gMV915b8OuFxsaZWRNebdbrdBxPX5eveqvx0EJPOAYIUmUcARp--xbsWh8qGY1NXS84701Q4PyBARphn804rY-QMe3tKXVhKHBY15EJoODxP6hlGCISwGhtSrEj-IWOifOa2TNvFpXeJESxGwfak4DzNmOqnFyP9WdeNU_3H3l6VM1Xo-hmejSJjnjCHix5oIX_b09VAqc5RN9-ELAEwJ1HLJfDw"
                 />
                 <span className="text-base font-bold text-white tracking-tight">Kaushal Setu</span>
               </div>
@@ -54,82 +54,68 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
               </div>
             </div>
 
-            {/* Col 3: Ecosystem Pathways */}
+            {/* Column 3: Ecosystem Pathways */}
             <div>
               <h3 className="text-white font-semibold text-sm mb-3">Ecosystem</h3>
               <ul className="space-y-2">
                 <li>
-                  <button
-                    onClick={() => setCurrentPage && setCurrentPage('student')}
-                    className="hover:text-blue-400 transition-colors text-left"
-                  >
+                  <button onClick={() => onNavigate && onNavigate('student')} className="hover:text-blue-400 transition-colors text-left cursor-pointer">
                     For Students
                   </button>
                 </li>
                 <li>
-                  <button
-                    onClick={() => setCurrentPage && setCurrentPage('institution')}
-                    className="hover:text-blue-400 transition-colors text-left"
-                  >
+                  <button onClick={() => onNavigate && onNavigate('institution')} className="hover:text-blue-400 transition-colors text-left cursor-pointer">
                     For Universities
                   </button>
                 </li>
                 <li>
-                  <button
-                    onClick={() => setCurrentPage && setCurrentPage('industry')}
-                    className="hover:text-blue-400 transition-colors text-left"
-                  >
+                  <button onClick={() => onNavigate && onNavigate('industry')} className="hover:text-blue-400 transition-colors text-left cursor-pointer">
                     For Industry Partners
                   </button>
                 </li>
                 <li>
-                  <button
-                    onClick={() => setCurrentPage && setCurrentPage('faq')}
-                    className="hover:text-blue-400 transition-colors text-left"
-                  >
-                    Apprenticeship Drives
+                  <button onClick={() => onNavigate && onNavigate('admin')} className="hover:text-amber-400 transition-colors text-left cursor-pointer">
+                    Admin Portal
                   </button>
                 </li>
               </ul>
             </div>
 
-            {/* Col 4: Framework */}
+            {/* Column 4: Framework */}
             <div>
               <h3 className="text-white font-semibold text-sm mb-3">Framework</h3>
               <ul className="space-y-2">
                 <li>
-                  <button
-                    onClick={() => setCurrentPage && setCurrentPage('about')}
-                    className="hover:text-blue-400 transition-colors text-left"
-                  >
+                  <button onClick={() => onNavigate && onNavigate('about')} className="hover:text-blue-400 transition-colors text-left cursor-pointer">
                     Curriculum Mapping
                   </button>
                 </li>
                 <li>
-                  <button
-                    onClick={() => setCurrentPage && setCurrentPage('about')}
-                    className="hover:text-blue-400 transition-colors text-left"
-                  >
+                  <button onClick={() => onNavigate && onNavigate('about')} className="hover:text-blue-400 transition-colors text-left cursor-pointer">
                     AICTE / NEP 2020 Matrix
                   </button>
                 </li>
                 <li>
-                  <button
-                    onClick={() => setCurrentPage && setCurrentPage('faq')}
-                    className="hover:text-blue-400 transition-colors text-left"
-                  >
-                    Help &amp; FAQ
+                  <button onClick={() => onNavigate && onNavigate('faq')} className="hover:text-blue-400 transition-colors text-left cursor-pointer">
+                    DigiLocker & APAAR
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => onNavigate && onNavigate('faq')} className="hover:text-blue-400 transition-colors text-left cursor-pointer">
+                    Security & DPDP Act
                   </button>
                 </li>
               </ul>
             </div>
 
-            {/* Col 5: Support Desk */}
+            {/* Column 5: Support Desk */}
             <div>
               <h3 className="text-white font-semibold text-sm mb-3">National Helpdesk</h3>
               <p className="text-slate-400 mb-2">New Delhi Knowledge Park V, National Capital Region</p>
               <p className="text-slate-300 font-medium">Toll Free: 1800-112-234</p>
-              <p className="text-blue-400 hover:underline mt-1">support@kaushalsetu.in</p>
+              <a href="mailto:support@kaushalsetu.in" className="text-blue-400 hover:underline mt-1 block">
+                support@kaushalsetu.in
+              </a>
               <div className="mt-3">
                 <span className="inline-block px-2.5 py-1 rounded bg-slate-800 text-[10px] text-slate-300 border border-slate-700">
                   Mon - Sat (9:00 AM - 6:00 PM IST)
@@ -138,15 +124,20 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
             </div>
           </div>
 
-          {/* Bottom Bar */}
+          {/* Bottom Bar with Legal and Copyright */}
           <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-slate-400 gap-4">
             <div className="flex items-center space-x-2">
-              <span>© 2026 Kaushal Setu Initiative. Government of India Collaboration Portal.</span>
+              <span>© 2025 Kaushal Setu Initiative. Government of India Collaboration Portal.</span>
             </div>
             <div className="flex items-center space-x-6 text-xs">
-              <span className="hover:text-slate-200 transition-colors cursor-pointer">Privacy Policy</span>
-              <span className="hover:text-slate-200 transition-colors cursor-pointer">Terms of Service</span>
-              <span className="hover:text-slate-200 transition-colors cursor-pointer">Accessibility</span>
+              <button onClick={() => onNavigate && onNavigate('faq')} className="hover:text-slate-200 transition-colors">
+                Help &amp; FAQ
+              </button>
+              <button onClick={() => onNavigate && onNavigate('about')} className="hover:text-slate-200 transition-colors">
+                About Architecture
+              </button>
+              <a href="#privacy" className="hover:text-slate-200 transition-colors">Privacy Policy</a>
+              <a href="#terms" className="hover:text-slate-200 transition-colors">Terms of Service</a>
             </div>
           </div>
         </div>

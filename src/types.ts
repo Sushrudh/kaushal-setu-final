@@ -1,190 +1,326 @@
 export type UserRole = 'student' | 'institution' | 'industry' | 'admin';
 
 export interface User {
-  id: number;
+  id: string;
   email: string;
   role: UserRole;
   fullName: string;
   phone?: string;
-  account_status?: string;
-  avatar_url?: string;
-  studentId?: number;
-  institutionId?: number;
-  industryId?: number;
+  organization?: string;
+  identifier?: string;
+  avatarUrl?: string;
+  isVerified: boolean;
+  createdAt?: string;
 }
 
 export interface StudentProfile {
-  id: number;
-  user_id: number;
-  full_name: string;
+  user_id?: string;
+  name?: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  bio?: string;
+  apaar_id?: string;
+  apaarId?: string;
+  roll_number?: string;
+  rollNumber?: string;
+  institution_name?: string;
+  college?: string;
+  degree_program?: string;
+  degreeProgram?: string;
+  graduation_year?: number;
+  graduationYear?: number;
+  current_cgpa?: number;
+  currentCgpa?: number;
+  state?: string;
+  digilocker_status?: 'unlinked' | 'pending' | 'verified';
+  digilockerVerified?: boolean;
+  digilocker_id?: string;
+  academic_qualification_verified?: string;
+  academic_verification_status?: 'pending' | 'verified' | 'rejected';
+  profile_completion_pct?: number;
+  is_profile_public?: boolean;
+  isProfilePublic?: boolean;
+  skills?: string[];
+  skillsDetailed?: StudentSkill[];
+  readinessScore?: number;
+  projects?: StudentProject[];
+  rapidFire?: RapidFireAssessment | null;
+  github?: GitHubStats | null;
+  leetcode?: LeetCodeStats | null;
+  resume?: ResumeMetadata | null;
+}
+
+export interface GitHubStats {
+  username: string;
+  avatarUrl?: string;
+  publicRepos: number;
+  followers: number;
+  languages: Record<string, number>;
+  stars: number;
+  forks: number;
+  recentActivity?: string[];
+  connectedAt?: string;
+}
+
+export interface LeetCodeStats {
+  username: string;
+  totalSolved: number;
+  easySolved: number;
+  mediumSolved: number;
+  hardSolved: number;
+  ranking: number;
+  contestRating: number;
+  categoryDistribution?: Record<string, number>;
+  connectedAt?: string;
+}
+
+export interface ResumeMetadata {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  uploadedAt: string;
+  downloadUrl: string;
+}
+
+export interface FacultyNomination {
+  id: string;
+  institution_user_id?: string;
+  faculty_name: string;
+  department: string;
+  designation: string;
   email: string;
   phone?: string;
-  apaar_id?: string;
-  roll_number?: string;
-  college_name: string;
-  course_degree?: string;
-  department?: string;
-  graduation_year?: number;
-  current_semester?: number;
-  cgpa?: number;
-  date_of_birth?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  digilocker_connected: number;
-  academic_verification_status: 'pending' | 'verified' | 'rejected';
-  profile_completion_pct: number;
-}
-
-export interface EducationItem {
-  id: number;
-  student_id: number;
-  qualification_type: string;
-  institution_name: string;
-  board_university?: string;
-  year_of_passing: number;
-  score_type: string;
-  score_value: string;
-  verified: number;
-  verification_source?: string;
-}
-
-export interface SkillItem {
-  id: number;
-  skill_id?: number;
-  name: string;
-  category: string;
-  proficiency_pct: number;
-  source: 'self_reported' | 'course_completion' | 'digilocker_credential' | 'github_analysis' | 'assessment';
-  verification_status: 'unverified' | 'verified' | 'in_review';
-  confidence_score?: number;
-  evidence_notes?: string;
-}
-
-export interface DocumentItem {
-  id: number;
-  student_id: number;
-  document_type: string;
-  file_name: string;
-  file_size_bytes: number;
-  file_mime_type: string;
-  storage_path: string;
-  verification_status: 'pending' | 'verified' | 'failed';
-  verification_source: string;
-  digilocker_uri?: string;
-  uploaded_at: string;
-}
-
-export interface GitHubInfo {
-  github_username: string;
-  profile_url?: string;
-  last_sync_at?: string;
-  public_repos_count: number;
-  total_contributions: number;
-  detectedLanguages: Record<string, number>;
-  topTechnologies: string[];
-  analysis?: {
-    overall_score: number;
-    factors: {
-      technology_usage: number;
-      project_relevance: number;
-      project_complexity: number;
-      recent_activity: number;
-      documentation: number;
-      open_source: number;
-    };
-    why_this_score?: string[];
-    summary: string;
-  };
-}
-
-export interface JobItem {
-  id: number;
-  industry_id: number;
-  company_name: string;
-  industry_sector?: string;
-  headquarters?: string;
-  title: string;
-  job_type: 'internship' | 'full_time' | 'apprenticeship' | 'capstone_project';
-  location: string;
-  work_mode: 'on_site' | 'remote' | 'hybrid';
-  stipend_salary: string;
-  experience_level?: string;
-  description: string;
-  application_deadline?: string;
+  specialization?: string;
+  program_title: string;
+  nomination_type: string;
+  status: 'Nominated' | 'Under Review' | 'Approved' | 'Active' | 'Withdrawn';
+  remarks?: string;
   created_at: string;
-  requiredSkills: { id: number; name: string; category?: string }[];
-  matchScore?: number;
-  applicantCount?: number;
 }
 
-export interface CourseItem {
-  id: number;
+export interface InterviewEvent {
+  id: string;
+  application_id: string;
+  company_name: string;
+  position: string;
+  interview_date: string;
+  interview_mode: 'Virtual' | 'On-site' | 'Campus';
+  instructions?: string;
+  status: 'Scheduled' | 'Completed' | 'Rescheduled' | 'Cancelled';
+  created_at: string;
+}
+
+export interface StudentProject {
+  id: string;
+  user_id?: string;
+  title: string;
+  description: string;
+  technologies: string;
+  skills_demonstrated?: string;
+  category: string;
+  github_url?: string;
+  live_url?: string;
+  image_url?: string;
+  project_type: 'Individual' | 'Team';
+  duration?: string;
+  status: 'In Progress' | 'Completed' | 'Maintained';
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface RapidFireAssessment {
+  id?: string;
+  user_id?: string;
+  worked_skills: string[];
+  learn_skills: string[];
+  has_real_world_projects: 'Yes' | 'No';
+  has_hackathons: 'Yes' | 'No';
+  primary_interest: string;
+  completed_at?: string;
+}
+
+export interface InstitutionProfile {
+  id?: string;
+  name: string;
+  aisheCode?: string;
+  aishe_code?: string;
+  type?: string;
+  state?: string;
+  curriculumIndex?: number;
+}
+
+export interface IndustryProfile {
+  id?: string;
+  name: string;
+  cin?: string;
+  sector?: string;
+  verified?: boolean;
+}
+
+export interface StudentSkill {
+  id: string;
+  skill_name: string;
+  proficiency_level: number;
+  source: 'digilocker' | 'course' | 'assessment' | 'institutional' | 'manual';
+  verification_status: 'unverified' | 'verified' | 'certified';
+  confidence: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SkillHistory {
+  id: string;
+  skill_name: string;
+  action: string;
+  source: string;
+  notes?: string;
+  created_at: string;
+}
+
+export interface JobOpportunity {
+  id: string;
+  industry_user_id?: string;
+  company_name?: string;
+  company?: string;
+  title: string;
+  job_type?: 'Internship' | 'Full-time Job' | 'Apprenticeship' | 'Live Project';
+  type?: any;
+  experience?: string;
+  location: string;
+  workplace_type?: 'Remote' | 'Hybrid' | 'On-site';
+  stipend_salary?: string;
+  stipend?: string;
+  description: string;
+  required_skills?: string;
+  skillsRequired?: string[];
+  preferred_skills?: string;
+  openings?: number;
+  deadline?: string;
+  created_at?: string;
+  is_active?: number;
+  matchScore?: number;
+  matchedSkills?: string[];
+  missingSkills?: string[];
+}
+
+export type Job = JobOpportunity;
+
+export interface Course {
+  id: string;
   title: string;
   provider: string;
-  category: string;
   description: string;
-  duration_weeks: number;
-  difficulty_level: string;
-  primary_skill_name?: string;
+  category?: string;
+  skills_covered?: string;
+  credits?: number;
+  target_skill_id?: string;
+  target_skill_name: string;
+  duration_hours: number;
+  duration?: string;
+  total_lessons: number;
+  difficulty: string;
+  thumbnail_url?: string;
+  rating: number;
+  enrolled_count: number;
   progress_pct?: number;
-  status?: 'not_started' | 'in_progress' | 'completed';
-  lectures?: {
-    id: number;
-    title: string;
-    lecture_order: number;
-    duration_minutes: number;
-    resource_url: string;
-  }[];
+  lessons_completed?: number;
+  is_enrolled?: boolean;
+  status?: 'not_enrolled' | 'enrolled' | 'in_progress' | 'completed';
+  lectures?: CourseLecture[];
 }
 
-export interface ApplicationItem {
-  id: number;
-  job_id: number;
-  job_title: string;
+export interface CourseLecture {
+  id: string;
+  course_id: string;
+  lesson_number: number;
+  title: string;
+  resource_url: string;
+  duration_mins: number;
+  is_free_preview: number;
+}
+
+export interface Application {
+  id: string;
+  user_id: string;
+  job_id: string;
   company_name: string;
-  location: string;
-  stipend_salary: string;
-  job_type: string;
-  status: 'Submitted' | 'Under Review' | 'Shortlisted' | 'Interview' | 'Selected' | 'Rejected' | 'Withdrawn';
+  job_title: string;
   match_score: number;
-  applied_at: string;
-  notes?: string;
+  matched_skills?: string;
+  missing_skills?: string;
+  status: 'Submitted' | 'Under Review' | 'Shortlisted' | 'Interview' | 'Selected' | 'Rejected' | 'Withdrawn';
+  applied_date: string;
+  last_updated: string;
+  next_action: string;
+  candidate_name?: string;
+  candidate_email?: string;
+  institution_name?: string;
 }
 
-export type Job = any;
-export type Course = any;
-export type Application = any;
-
-
-export interface SupportTicket {
-  id: number;
-  ticket_code: string;
-  user_id: number;
-  user_role: string;
-  submitter_name?: string;
-  submitter_email?: string;
-  category: string;
-  subject: string;
-  description: string;
-  priority: 'Low' | 'Normal' | 'High' | 'Urgent';
-  status: 'Open' | 'In Progress' | 'Waiting for Student' | 'Resolved' | 'Closed';
-  created_at: string;
-  updated_at: string;
-  replies?: {
-    id: number;
-    sender_name: string;
-    sender_role: string;
-    message: string;
-    created_at: string;
-  }[];
-}
-
-export interface FaqItem {
-  id: number;
+export interface FAQItem {
+  id: string;
   category: string;
   question: string;
   answer: string;
+  icon?: string;
   keywords?: string;
-  sort_order: number;
+  display_order: number;
 }
+
+export interface AuditLog {
+  id: string;
+  user_id?: string;
+  user_email?: string;
+  role?: string;
+  action: string;
+  details?: string;
+  created_at: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  user_id: string;
+  user_email: string;
+  user_role: string;
+  subject: string;
+  category: string;
+  message: string;
+  priority: string;
+  status: string;
+  admin_reply?: string;
+  created_at: string;
+}
+
+export interface ResumeMetadata {
+  id: string;
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  mimeType: string;
+  uploadedAt: string;
+}
+
+export interface GitHubStats {
+  username: string;
+  publicRepos: number;
+  totalStars: number;
+  totalContributions: number;
+  topLanguages: string[];
+  profileUrl: string;
+  lastSyncedAt?: string;
+}
+
+export interface LeetCodeStats {
+  username: string;
+  ranking: number;
+  totalSolved: number;
+  easySolved: number;
+  mediumSolved: number;
+  hardSolved: number;
+  acceptanceRate: number;
+  profileUrl: string;
+  lastSyncedAt?: string;
+}
+
