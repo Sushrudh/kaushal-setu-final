@@ -1,0 +1,6 @@
+{
+  "name": "Kaushal Setu",
+  "description": "National Digital Skills Gateway connecting students, academic institutions, and enterprise industries for real-time skill mapping, DigiLocker verification, internships, and placements.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
