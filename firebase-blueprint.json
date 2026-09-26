@@ -1,0 +1,101 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile document",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase user UID"
+        },
+        "email": {
+          "type": "string",
+          "description": "User primary email address"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["student", "institution", "industry", "admin"],
+          "description": "Platform ecosystem role"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Full legal or institutional name"
+        },
+        "avatarUrl": {
+          "type": "string",
+          "description": "URL to user profile picture"
+        },
+        "isVerified": {
+          "type": "boolean",
+          "description": "Whether the user's email or identity is verified"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp ISO string of account creation"
+        }
+      },
+      "required": ["userId", "email", "role", "fullName"]
+    },
+    "SupportTicket": {
+      "title": "SupportTicket",
+      "description": "User support ticket for helpdesk and grievance redressal",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Ticket unique identifier"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Identifier of user submitting ticket"
+        },
+        "userEmail": {
+          "type": "string",
+          "description": "Email address for notifications"
+        },
+        "role": {
+          "type": "string",
+          "description": "User role"
+        },
+        "subject": {
+          "type": "string",
+          "description": "Subject of the inquiry"
+        },
+        "category": {
+          "type": "string",
+          "description": "Ticket category"
+        },
+        "message": {
+          "type": "string",
+          "description": "Detailed inquiry description"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Open", "In Progress", "Waiting", "Resolved", "Closed"],
+          "description": "Current ticket status"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["Low", "Medium", "High", "Urgent"],
+          "description": "Priority level"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["id", "userId", "userEmail", "role", "subject", "message", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles indexed by UID"
+    },
+    "/support_tickets/{ticketId}": {
+      "schema": "SupportTicket",
+      "description": "Support tickets raised by authenticated users"
+    }
+  }
+}

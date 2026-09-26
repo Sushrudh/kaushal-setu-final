@@ -1,0 +1,748 @@
+import React, { useState } from 'react';
+import { User } from '../types';
+import {
+  auth,
+  googleProvider,
+  githubProvider,
+  signInWithPopup,
+  sendPasswordResetEmail
+} from '../lib/firebase';
+import { syncUserProfileToFirestore } from '../lib/firestoreService';
+
+interface HomeLoginViewProps {
+  onLoginSuccess: (user: User, token: string) => void;
+  onNavigate: (view: string) => void;
+}
+
+export const HomeLoginView: React.FC<HomeLoginViewProps> = ({ onLoginSuccess, onNavigate }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [carouselIndex, setCarouselIndex] = useState(0);
+
+  // Forgot Password Modal State
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSuccess, setForgotSuccess] = useState('');
+  const [forgotError, setForgotError] = useState('');
+  const [recoveryLink, setRecoveryLink] = useState('');
+
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const authError = urlParams.get('auth_error');
+    if (authError) {
+      setErrorMessage(decodeURIComponent(authError));
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  const carouselItems = [
+    {
+      title: 'Bridging Skills',
+      desc: 'Closing the gap between academic learning and industry requirements through targeted skill development programs.'
+    },
+    {
+      title: 'Verified Industry Internships',
+      desc: 'Direct placement gateway backed by DigiLocker and National Academic Depository credential validation.'
+    },
+    {
+      title: 'Curriculum & FDP Alignment',
+      desc: 'Enabling universities and polytechnics to harmonize syllabus with real-world enterprise technology standards.'
+    }
+  ];
+
+  const handleNextSlide = () => {
+    setCarouselIndex((prev) => (prev + 1) % carouselItems.length);
+  };
+
+  const handlePrevSlide = () => {
+    setCarouselIndex((prev) => (prev - 1 + carouselItems.length) % carouselItems.length);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage('');
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password, rememberMe })
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setErrorMessage(json.error?.message || 'Login failed. Please check your credentials.');
+        setLoading(false);
+        return;
+      }
+
+      onLoginSuccess(json.data.user, json.data.token);
+    } catch (err: any) {
+      setErrorMessage('Network error connecting to national authentication service. Please retry.');
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSSO = async () => {
+    setLoading(true);
+    setErrorMessage('');
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      const idToken = await user.getIdToken();
+
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idToken,
+          role: 'student'
+        })
+      });
+
+      const json = await res.json();
+      if (res.ok && json.success) {
+        try {
+          await syncUserProfileToFirestore({
+            userId: user.uid,
+            email: user.email || json.data.user.email,
+            role: json.data.user.role || 'student',
+            fullName: user.displayName || json.data.user.fullName || 'User',
+            avatarUrl: user.photoURL || json.data.user.avatarUrl,
+            isVerified: user.emailVerified || true
+          });
+        } catch (fsErr) {
+          console.warn('Firestore user profile sync notice:', fsErr);
+        }
+        onLoginSuccess(json.data.user, json.data.token);
+      } else {
+        setErrorMessage(json.error?.message || 'Google Sign-In authorization failed.');
+      }
+    } catch (err: any) {
+      if (err.code === 'auth/popup-closed-by-user') {
+        setErrorMessage('Google Sign-In was cancelled.');
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        setErrorMessage('Sign-in request was cancelled. Please try again.');
+      } else if (err.code === 'auth/popup-blocked') {
+        setErrorMessage('Browser popup was blocked by sandbox permissions. Please allow popups to continue with Google.');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setErrorMessage('Google Sign-In is not enabled in Firebase Console. Please enable Google provider in Firebase.');
+      } else {
+        setErrorMessage(err.message || 'Google Sign-In failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGitHubSSO = async () => {
+    setLoading(true);
+    setErrorMessage('');
+    try {
+      const result = await signInWithPopup(auth, githubProvider);
+      const user = result.user;
+      const idToken = await user.getIdToken();
+
+      const res = await fetch('/api/auth/github', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idToken,
+          role: 'student'
+        })
+      });
+
+      const json = await res.json();
+      if (res.ok && json.success) {
+        try {
+          await syncUserProfileToFirestore({
+            userId: user.uid,
+            email: user.email || json.data.user.email,
+            role: json.data.user.role || 'student',
+            fullName: user.displayName || json.data.user.fullName || 'User',
+            avatarUrl: user.photoURL || json.data.user.avatarUrl,
+            isVerified: user.emailVerified || true
+          });
+        } catch (fsErr) {
+          console.warn('Firestore user profile sync notice:', fsErr);
+        }
+        onLoginSuccess(json.data.user, json.data.token);
+      } else {
+        setErrorMessage(json.error?.message || 'GitHub Sign-In authorization failed.');
+      }
+    } catch (err: any) {
+      if (err.code === 'auth/operation-not-allowed') {
+        setErrorMessage('GitHub provider is not yet enabled in Firebase Console. Enable GitHub in Firebase Console -> Authentication -> Sign-in method with callback URL: https://gifted-slate-0vxch.firebaseapp.com/__/auth/handler');
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        setErrorMessage('GitHub Sign-In was cancelled.');
+      } else if (err.code === 'auth/popup-blocked') {
+        setErrorMessage('Browser popup was blocked. Please allow popups to continue with GitHub.');
+      } else if (err.code === 'auth/account-exists-with-different-credential') {
+        setErrorMessage('An account already exists with the same email under a different sign-in method.');
+      } else {
+        setErrorMessage(err.message || 'GitHub Sign-In failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotSuccess('');
+    setRecoveryLink('');
+
+    const targetEmail = forgotEmail.trim();
+    if (!targetEmail) {
+      setForgotError('Please enter your registered email address.');
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      // Dispatch recovery link via secure backend service
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: targetEmail })
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setForgotError(json.error?.message || json.message || 'Failed to dispatch password recovery link.');
+        return;
+      }
+
+      setForgotSuccess(json.message || `Password recovery link dispatched to ${targetEmail}.`);
+      if (json.data?.recoveryLink) {
+        setRecoveryLink(json.data.recoveryLink);
+      }
+
+      // Also trigger Firebase reset in background if user is in Firebase
+      sendPasswordResetEmail(auth, targetEmail).catch(() => {});
+    } catch (err: any) {
+      setForgotError('Network error connecting to national authentication service. Please retry.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  return (
+    <div className="w-full flex flex-col">
+      {/* 1. HERO / INTRO SECTION - Pixel-accurate to login(1).html */}
+      <section className="relative flex flex-col items-center justify-center py-20 md:py-28 px-6 md:px-16 border-b border-slate-200 overflow-hidden">
+        {/* Background Canvas */}
+        <div
+          className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url('https://lh3.googleusercontent.com/aida/AEtjO1VILgTRw5BnwxFhdJG3VjRrqKg3JGDytnVn3nlJYauF-ifVWqdDwU_eb-hbelVQfQoetMb7DFywf9xTCTQAKvf_e5fhMe1MJHmqwQmM9K8oUvN-I-e3Vx8T96dkYTS76dwUzIBQy01ehHIe7LNcXi96cbI7-OVf4OzHNSkKxkxLmlBO5WaqVx413aH6Jo0HQVOKEAtw1gN5iMOAmJ4Xs2mAH4usY96rXqIS4wAO0ca6q5u_luTHnxcCcFs')`
+          }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-black/90 via-black/80 to-slate-950/95 backdrop-blur-[2px]"></div>
+        </div>
+
+        {/* Ambient Glows */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] md:w-[900px] h-[400px] bg-gradient-to-tr from-amber-500/20 via-blue-500/15 to-emerald-500/20 blur-3xl pointer-events-none rounded-full z-0"></div>
+
+        <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center text-center">
+          {/* National Skill Gateway Pill */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/90 text-xs font-medium mb-8 shadow-inner">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>National Digital Skills Gateway • Skill India Aligned</span>
+          </div>
+
+          {/* Logo Card */}
+          <div className="mb-8 flex justify-center transform hover:scale-105 transition-transform duration-300">
+            <div className="p-3 rounded-2xl bg-white/95 backdrop-blur-md shadow-2xl border border-white/40 ring-4 ring-white/10">
+              <img
+                alt="Kaushal Setu Logo"
+                className="h-24 md:h-28 w-auto object-contain"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDv5bUAk5gyvFe2EvMHgmZ_YoM6xSVA85XYnbC381gMV915b8OuFxsaZWRNebdbrdBxPX5eveqvx0EJPOAYIUmUcARp--xbsWh8qGY1NXS84701Q4PyBARphn804rY-QMe3tKXVhKHBY15EJoODxP6hlGCISwGhtSrEj-IWOifOa2TNvFpXeJESxGwfak4DzNmOqnFyP9WdeNU_3H3l6VM1Xo-hmejSJjnjCHix5oIX_b09VAqc5RN9-ELAEwJ1HLJfDw"
+              />
+            </div>
+          </div>
+
+          {/* Interactive Carousel Card */}
+          <div className="w-full max-w-2xl mb-10 relative group">
+            <div className="overflow-hidden rounded-2xl border border-white/20 shadow-2xl bg-slate-900/60 backdrop-blur-xl transition-all duration-300 hover:border-white/30">
+              <div className="relative h-64 md:h-72 flex items-center justify-center p-6">
+                <div className="w-full h-full flex flex-col items-center justify-center text-center">
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <div className="w-8 h-1 rounded-full bg-[#FF9933]"></div>
+                    <div className="w-8 h-1 rounded-full bg-white"></div>
+                    <div className="w-8 h-1 rounded-full bg-[#138808]"></div>
+                  </div>
+                  <h3 className="text-2xl md:text-3xl font-bold text-white mb-3 tracking-tight">
+                    {carouselItems[carouselIndex].title}
+                  </h3>
+                  <p className="text-white/85 text-base md:text-lg max-w-lg leading-relaxed font-normal">
+                    {carouselItems[carouselIndex].desc}
+                  </p>
+                </div>
+
+                {/* Left Arrow */}
+                <button
+                  type="button"
+                  onClick={handlePrevSlide}
+                  className="absolute left-4 p-2 rounded-full bg-white/10 hover:bg-white/25 text-white transition-all backdrop-blur-md border border-white/10 shadow-md cursor-pointer"
+                  aria-label="Previous Slide"
+                >
+                  <span className="material-symbols-outlined text-xl leading-none">chevron_left</span>
+                </button>
+
+                {/* Right Arrow */}
+                <button
+                  type="button"
+                  onClick={handleNextSlide}
+                  className="absolute right-4 p-2 rounded-full bg-white/10 hover:bg-white/25 text-white transition-all backdrop-blur-md border border-white/10 shadow-md cursor-pointer"
+                  aria-label="Next Slide"
+                >
+                  <span className="material-symbols-outlined text-xl leading-none">chevron_right</span>
+                </button>
+
+                {/* Dot Indicators */}
+                <div className="absolute bottom-4 flex gap-2 items-center">
+                  {carouselItems.map((_, i) => (
+                    <div
+                      key={i}
+                      onClick={() => setCarouselIndex(i)}
+                      className={`cursor-pointer transition-all ${
+                        carouselIndex === i
+                          ? 'w-6 h-2 rounded-full bg-[#FF9933]'
+                          : 'w-2 h-2 rounded-full bg-white/40 hover:bg-white/70'
+                      }`}
+                    ></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {/* Tricolour Accent Line */}
+            <div className="absolute -bottom-1 left-4 right-4 h-1 flex rounded-full overflow-hidden shadow-sm">
+              <div className="w-1/3 h-full bg-[#FF9933]"></div>
+              <div className="w-1/3 h-full bg-white"></div>
+              <div className="w-1/3 h-full bg-[#138808]"></div>
+            </div>
+          </div>
+
+          <h1 className="text-4xl md:text-5xl lg:text-6xl text-white font-extrabold tracking-tight leading-tight mb-6 text-center max-w-3xl drop-shadow-md">
+            Bridging Potential to Excellence.
+          </h1>
+
+          <p className="text-base md:text-xl text-white/90 leading-relaxed font-normal mb-10 text-center max-w-2xl mx-auto drop-shadow-sm">
+            Kaushal Setu is the premier digital bridge connecting ambitious academia with industry leaders. We streamline collaboration, accelerate innovation, and align educational outcomes with real-world technological demands.
+          </p>
+
+          {/* Problem Statement Card */}
+          <div className="w-full max-w-3xl rounded-2xl border border-white/15 bg-slate-950/70 backdrop-blur-xl shadow-2xl p-8 md:p-10 relative overflow-hidden text-center mt-2">
+            <div className="absolute top-0 inset-x-0 h-1.5 flex">
+              <div className="w-1/3 h-full bg-[#FF9933]"></div>
+              <div className="w-1/3 h-full bg-white"></div>
+              <div className="w-1/3 h-full bg-[#138808]"></div>
+            </div>
+            <div className="mb-6">
+              <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-blue-600/20 text-blue-300 border border-blue-400/30 uppercase tracking-widest mb-2">
+                Problem Statement
+              </span>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white mb-2">Description</h2>
+              <p className="text-sky-300 font-semibold text-xs md:text-sm uppercase tracking-wider">
+                Portal for Academia - Industry Collaboration
+              </p>
+            </div>
+            <div className="space-y-5 text-white/90 font-normal leading-relaxed text-center">
+              <p className="text-sm md:text-base text-white/80 max-w-2xl mx-auto">
+                A significant gap exists between the skills acquired in academic institutions and the competencies expected by industries.{' '}
+                <span className="text-white font-medium">Students</span> often struggle to identify the skills required for their desired career paths, while{' '}
+                <span className="text-white font-medium">industries</span> face challenges in finding candidates with the right skill sets.
+              </p>
+              <div className="pt-5 border-t border-white/10">
+                <p className="text-sm md:text-base font-semibold text-amber-200/95 max-w-2xl mx-auto leading-snug">
+                  There is a need for a unified platform that connects{' '}
+                  <span className="text-white underline decoration-[#FF9933] underline-offset-4">students</span>,{' '}
+                  <span className="text-white underline decoration-white underline-offset-4">industries</span>, and{' '}
+                  <span className="text-white underline decoration-[#138808] underline-offset-4">academicians</span>, enabling seamless collaboration and skill development.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. LOGIN / PORTAL ACCESS SECTION */}
+      <section
+        className="flex-grow flex flex-col justify-center py-20 px-6 md:px-16 bg-gradient-to-b from-slate-50 via-slate-100 to-slate-200 z-10 relative items-center border-t border-slate-300"
+        id="sign-in-section"
+      >
+        <div className="w-full max-w-lg mx-auto relative z-10">
+          <div className="relative rounded-2xl p-[1.5px] bg-gradient-to-b from-white via-slate-200 to-slate-300 shadow-2xl">
+            <div className="bg-white/95 backdrop-blur-xl rounded-2xl p-8 sm:p-10 relative overflow-hidden">
+              {/* Tricolour Ribbon Top */}
+              <div className="absolute top-0 inset-x-0 h-1.5 flex">
+                <div className="w-1/3 h-full bg-[#FF9933] shadow-sm"></div>
+                <div className="w-1/3 h-full bg-white"></div>
+                <div className="w-1/3 h-full bg-[#138808] shadow-sm"></div>
+              </div>
+
+              {/* Title & Icon Header */}
+              <div className="mb-8 text-center relative">
+                <div className="inline-flex relative mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-700 to-blue-600 p-0.5 shadow-lg shadow-blue-600/30 flex items-center justify-center">
+                    <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center text-blue-700 group">
+                      <span className="material-symbols-outlined text-3xl transition-transform group-hover:scale-110">
+                        lock_open_right
+                      </span>
+                    </div>
+                  </div>
+                  <div className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
+                    <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 items-center justify-center text-white text-[9px] font-bold">
+                      ✓
+                    </span>
+                  </div>
+                </div>
+
+                <div className="inline-block px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-bold uppercase tracking-wider mb-2">
+                  Secure Portal Access
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-2">
+                  Sign in to your account
+                </h2>
+                <p className="text-slate-500 text-sm max-w-sm mx-auto leading-relaxed">
+                  Connect directly with premier industry programs, verified credentials, and institutional resources.
+                </p>
+              </div>
+
+              {/* Federated Social SSO Buttons - Google & GitHub ONLY */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                <button
+                  type="button"
+                  onClick={handleGoogleSSO}
+                  disabled={loading}
+                  className="flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-blue-400 hover:shadow-md transition-all text-xs font-semibold text-slate-700 cursor-pointer disabled:opacity-50"
+                  title="Continue with Google"
+                >
+                  <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"></path>
+                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"></path>
+                    <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15z"></path>
+                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"></path>
+                  </svg>
+                  <span>Continue with Google</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleGitHubSSO}
+                  disabled={loading}
+                  className="flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-800 hover:shadow-md transition-all text-xs font-semibold text-slate-800 cursor-pointer disabled:opacity-50"
+                  title="Continue with GitHub"
+                >
+                  <svg className="w-4 h-4 fill-current text-slate-900 flex-shrink-0" viewBox="0 0 24 24">
+                    <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"></path>
+                  </svg>
+                  <span>Continue with GitHub</span>
+                </button>
+              </div>
+
+              {/* Section Divider */}
+              <div className="relative flex items-center justify-center mb-5">
+                <div className="w-full border-t border-slate-200"></div>
+                <span className="absolute px-3 bg-white text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                  Or continue with email
+                </span>
+              </div>
+
+              {/* Error Announcement */}
+              {errorMessage && (
+                <div className="mb-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 font-medium">
+                  <span className="material-symbols-outlined text-rose-600 text-base flex-shrink-0">error</span>
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
+              {/* Credential Login Form */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between" htmlFor="email">
+                      <span>Email address</span>
+                      <span className="text-[10px] text-slate-400 font-normal">Institutional or Personal</span>
+                    </label>
+                    <div className="relative rounded-xl shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <span className="material-symbols-outlined text-lg">mail</span>
+                      </div>
+                      <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        placeholder="name@institution.ac.in"
+                        className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700" htmlFor="password">
+                        Password
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForgotEmail(email || '');
+                          setForgotError('');
+                          setForgotSuccess('');
+                          setShowForgotModal(true);
+                        }}
+                        className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                    <div className="relative rounded-xl shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <span className="material-symbols-outlined text-lg">key</span>
+                      </div>
+                      <input
+                        id="password"
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        placeholder="••••••••••••"
+                        className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-10 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                        title={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        <span className="material-symbols-outlined text-lg">
+                          {showPassword ? 'visibility_off' : 'visibility'}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1 pb-1">
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                      <input
+                        id="remember-me"
+                        name="remember-me"
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                      <span className="text-xs font-medium text-slate-600">Remember credentials</span>
+                    </label>
+                    <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                      <span className="material-symbols-outlined text-xs">verified_user</span> 256-bit SSL
+                    </span>
+                  </div>
+
+                  {/* Primary Sign In Button */}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full relative group overflow-hidden rounded-xl p-[1px] shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/35 transition-all duration-300 transform active:scale-[0.99] cursor-pointer"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#FF9933] via-blue-600 to-[#138808] transition-all duration-500 opacity-90 group-hover:opacity-100"></div>
+                    <div className="relative flex items-center justify-center gap-2 py-3.5 px-6 rounded-[11px] bg-gradient-to-r from-blue-700 to-indigo-700 text-white font-semibold text-sm transition-colors group-hover:bg-opacity-95">
+                      <span>{loading ? 'Authenticating with Gateway...' : 'Sign in to Kaushal Setu'}</span>
+                      <span className="material-symbols-outlined text-base font-bold transition-transform group-hover:translate-x-1">
+                        arrow_forward
+                      </span>
+                    </div>
+                  </button>
+
+                  <div className="text-center pt-2">
+                    <span className="text-xs text-slate-500">New learner or organization? </span>
+                    <button
+                      type="button"
+                      onClick={() => onNavigate('signup')}
+                      className="text-xs font-bold text-blue-600 hover:underline ml-1 cursor-pointer"
+                    >
+                      Sign up now →
+                    </button>
+                  </div>
+                </form>
+
+              {/* Institutional Request Access CTA */}
+              <div className="mt-6 pt-5 border-t border-slate-100">
+                <div className="text-center mb-3">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    Institutional &amp; Enterprise Access
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('signup')}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-200 hover:border-blue-400 text-xs font-semibold text-slate-700 hover:text-blue-700 transition-all bg-slate-50 hover:bg-white hover:shadow-md cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base text-blue-600">domain_add</span>
+                  <span>Register Institution / Industry Organization</span>
+                </button>
+              </div>
+
+              {/* Dedicated Administrator Access Link */}
+              <div className="mt-5 pt-4 border-t border-slate-100/80 flex items-center justify-between text-xs text-slate-500">
+                <span className="flex items-center gap-1.5 text-slate-400 font-medium">
+                  <span className="material-symbols-outlined text-sm text-amber-600">shield_person</span>
+                  <span>Platform Administration</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('admin-login')}
+                  className="text-blue-700 hover:text-blue-800 font-semibold hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Admin Portal Login</span>
+                  <span className="material-symbols-outlined text-xs">arrow_forward</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Forgot Password Modal */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 relative animate-in fade-in zoom-in-95 duration-200">
+            <button
+              type="button"
+              onClick={() => { setShowForgotModal(false); setForgotError(''); setForgotSuccess(''); }}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-xl">close</span>
+            </button>
+
+            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-2xl">lock_reset</span>
+            </div>
+
+            <h3 className="text-lg font-bold text-slate-900 mb-1">
+              Reset Your Password
+            </h3>
+            <p className="text-xs text-slate-500 mb-5 leading-relaxed">
+              Enter your registered email address. We will dispatch a secure recovery link to your inbox.
+            </p>
+
+            {forgotSuccess ? (
+              <div className="space-y-4 mb-5">
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2.5">
+                  <span className="material-symbols-outlined text-emerald-600 text-lg flex-shrink-0">check_circle</span>
+                  <div>
+                    <p className="font-semibold text-emerald-900 mb-1">Recovery Link Dispatched</p>
+                    <p className="leading-relaxed">{forgotSuccess}</p>
+                  </div>
+                </div>
+
+                {recoveryLink && (
+                  <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs space-y-2">
+                    <div className="flex items-center gap-1.5 text-blue-900 font-semibold">
+                      <span className="material-symbols-outlined text-base text-blue-600">link</span>
+                      <span>Recovery Link (Testing / Preview):</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Click below to proceed to the secure password reset screen:
+                    </p>
+                    <a
+                      href={recoveryLink}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShowForgotModal(false);
+                        const url = new URL(recoveryLink, window.location.origin);
+                        window.history.pushState({}, '', url.pathname + url.search);
+                        onNavigate('reset-password');
+                      }}
+                      className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition cursor-pointer shadow-xs"
+                    >
+                      <span>Open Password Reset Screen</span>
+                      <span className="material-symbols-outlined text-sm">open_in_new</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                {forgotError && (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 font-medium">
+                    <span className="material-symbols-outlined text-rose-600 text-base">error</span>
+                    <span>{forgotError}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5" htmlFor="forgot-email">
+                    Registered Email Address
+                  </label>
+                  <div className="relative rounded-xl shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <span className="material-symbols-outlined text-lg">mail</span>
+                    </div>
+                    <input
+                      id="forgot-email"
+                      name="forgot-email"
+                      type="email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      required
+                      placeholder="name@institution.ac.in"
+                      className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => { setShowForgotModal(false); setForgotError(''); setForgotSuccess(''); setRecoveryLink(''); }}
+                    className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={forgotLoading || !forgotEmail.trim()}
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md shadow-blue-500/20 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    {forgotLoading ? (
+                      <span>Sending...</span>
+                    ) : (
+                      <>
+                        <span>Send Recovery Link</span>
+                        <span className="material-symbols-outlined text-sm">send</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {forgotSuccess && (
+              <button
+                type="button"
+                onClick={() => { setShowForgotModal(false); setForgotSuccess(''); }}
+                className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs cursor-pointer"
+              >
+                Back to Login
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
